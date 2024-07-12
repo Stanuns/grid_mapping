@@ -2,7 +2,7 @@
  * @Author: Wei Sun 
  * @Date: 2024-07-09 09:16:07 
  * @Last Modified by: Wei Sun
- * @Last Modified time: 2024-07-11 19:55:54
+ * @Last Modified time: 2024-07-12 17:43:07
  */
 #ifndef SRC_GRID_MAPPING_ROS_HPP
 #define SRC_GRID_MAPPING_ROS_HPP
@@ -123,7 +123,7 @@ private:
 
     //tf2
     std::shared_ptr<tf2_ros::TransformListener> tfL_{nullptr};
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::string laser_frame_;
     std::string odom_frame_;
     // tf::Stamped<tf::Pose> centered_laser_pose_;
@@ -134,7 +134,7 @@ private:
     double tf2_delay_;
     double transform_publish_period_;
     tf2::Transform map_to_odom_;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> tfB_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tfB_;
     std::shared_ptr<std::thread> transform_thread_;
     std::mutex map_to_odom_mutex_;
 

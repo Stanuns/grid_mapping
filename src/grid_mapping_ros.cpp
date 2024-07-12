@@ -2,7 +2,7 @@
  * @Author: Wei Sun 
  * @Date: 2024-07-09 09:15:43 
  * @Last Modified by: Wei Sun
- * @Last Modified time: 2024-07-11 20:25:48
+ * @Last Modified time: 2024-07-12 17:55:01
  */
 #include "rclcpp/rclcpp.hpp"
 #include "grid_mapping/grid_mapping_ros.hpp"
@@ -24,6 +24,13 @@ transform_thread_(nullptr)
     init();
     rclcpp::QoS qos(10);
     auto rmw_qos_profile = qos.get_rmw_qos_profile();
+    tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+        get_node_base_interface(),
+        get_node_timers_interface());
+    tf2_buffer_->setCreateTimerInterface(timer_interface);
+    tfL_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
+    tfB_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
 
     // odom_sub.subscribe(this, "odom", rmw_qos_profile);
@@ -39,7 +46,8 @@ transform_thread_(nullptr)
     scan_sub.subscribe(this, "/scan");
     sync_.registerCallback(&GridMappingRos::liveGmapping, this);
 
-    // transform_thread_ = new boost::thread(boost::bind(&SlamGmappingRos::publishLoop, this, transform_publish_period_));
+    transform_thread_ = std::make_shared<std::thread>
+            (std::bind(&GridMappingRos::publishLoop, this, transform_publish_period_));
 }
 
 GridMappingRos::~GridMappingRos(){
@@ -156,6 +164,18 @@ void GridMappingRos::liveGmapping(const nav_msgs::msg::Odometry::ConstSharedPtr&
         pf_.getBestParticle(targetParticle);
         publishMapInfo();
 
+        //get the tf2 map to odom
+        grid_mapping::Pose mPose = targetParticle.getTraceLast();
+        // tf::Transform laser_to_map = tf::Transform(tf::createQuaternionFromRPY(0, 0, mPose.th), tf::Vector3(mPose.x, mPose.y, 0.0)).inverse();
+        // tf::Transform odom_to_laser = tf::Transform(tf::createQuaternionFromRPY(0, 0, gmap_odomPose.th), tf::Vector3(gmap_odomPose.x, gmap_odomPose.y, 0.0));
+        tf2::Quaternion q;
+        q.setRPY(0, 0, mPose.th);
+        tf2::Transform laser_to_map = tf2::Transform(q, tf2::Vector3(mPose.x, mPose.y, 0.0)).inverse();
+        q.setRPY(0, 0, gmap_odomPose.th);
+        tf2::Transform odom_to_laser = tf2::Transform(q, tf2::Vector3(gmap_odomPose.x, gmap_odomPose.y, 0.0));
+        map_to_odom_mutex_.lock();
+        map_to_odom_ = (odom_to_laser * laser_to_map).inverse();
+        map_to_odom_mutex_.unlock();
     }
 }
 
@@ -164,7 +184,8 @@ bool GridMappingRos::getOdomPose(const nav_msgs::msg::Odometry::ConstSharedPtr& 
     geometry_msgs::msg::PoseStamped base_pose;
     try
     {
-        transformPose(base_link_frame_, centered_laser_pose_, base_pose);
+        //transformPose(base_link_frame_, centered_laser_pose_, base_pose);
+        tf2_buffer_->transform(centered_laser_pose_, base_pose, base_link_frame_, tf2::durationFromSec(1.0));
     }
     catch(...)
     {
@@ -176,7 +197,8 @@ bool GridMappingRos::getOdomPose(const nav_msgs::msg::Odometry::ConstSharedPtr& 
     * **/
     geometry_msgs::msg::PoseStamped laserPose_inOdom;
     try{
-        transformPose(odom_frame_, base_pose, laserPose_inOdom);
+        // transformPose(odom_frame_, base_pose, laserPose_inOdom);
+        tf2_buffer_->transform(base_pose, laserPose_inOdom, odom_frame_, tf2::durationFromSec(1.0));
     }
     catch(...){
         return false;
@@ -257,6 +279,36 @@ void GridMappingRos::publishMapInfo(){
     map_publisher_->publish(map_.map);
     mapmd_publisher_->publish(map_.map.info);
     RCLCPP_INFO(this->get_logger(),"Already publish map ...");
+}
+
+//publish tf: odom -> map
+void GridMappingRos::publishLoop(double transform_publish_period){
+    if(transform_publish_period == 0)
+        return;
+
+    rclcpp::Rate r(1.0 / transform_publish_period);
+    while(rclcpp::ok()){
+        publishTransform();
+        r.sleep();
+    }
+}
+void GridMappingRos::publishTransform()
+{
+    map_to_odom_mutex_.lock();
+    rclcpp::Time tf_expiration = this->get_clock()->now()+ rclcpp::Duration(static_cast<int32_t>(static_cast<rcl_duration_value_t>(tf2_delay_)), 0);
+    //tfB_.sendTransform( tf::StampedTransform (map_to_odom_, tf_expiration, map_frame_, odom_frame_));
+    geometry_msgs::msg::TransformStamped transform;
+    transform.header.frame_id = map_frame_;
+    transform.header.stamp = tf_expiration;
+    transform.child_frame_id = odom_frame_;
+    try {
+        transform.transform = tf2::toMsg(map_to_odom_);
+        tfB_->sendTransform(transform);
+    }
+    catch (tf2::LookupException& te){
+        RCLCPP_INFO(this->get_logger(), te.what());
+    }
+    map_to_odom_mutex_.unlock();
 }
 
 bool GridMappingRos::transformPose(
