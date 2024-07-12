@@ -6,7 +6,7 @@
 #define SRC_RESAMPLE_HPP
 
 #include "grid_mapping/particle.hpp"
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include <vector>
 
 using namespace std;

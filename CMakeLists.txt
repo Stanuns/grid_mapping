@@ -15,6 +15,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(Eigen3 3.3 REQUIRED)
 
 if(TARGET tf2_geometry_msgs::tf2_geometry_msgs)
   get_target_property(_include_dirs tf2_geometry_msgs::tf2_geometry_msgs INTERFACE_INCLUDE_DIRECTORIES)
@@ -29,7 +30,10 @@ find_file(TF2_CPP_HEADERS
   PATH_SUFFIXES tf2_geometry_msgs
 )
 
-include_directories(include)
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIR}
+  )
 
 add_executable(grid_mapping_ros src/grid_mapping.cpp src/grid_mapping_ros.cpp)
 ament_target_dependencies(
@@ -43,6 +47,22 @@ ament_target_dependencies(
   tf2_geometry_msgs
   tf2_ros
 )
+target_link_libraries(grid_mapping_ros Eigen3::Eigen)
+
+add_library(${PROJECT_NAME}
+  src/bresenham.cpp
+  src/control.cpp
+  src/grid_map.cpp
+  src/motion.cpp
+  src/observation.cpp
+  src/particle.cpp
+  src/particle_filter.cpp
+  src/resample.cpp
+  src/scan_matcher.cpp
+  src/pose.cpp
+  src/point.cpp
+  )
+target_link_libraries(grid_mapping_ros ${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -4,7 +4,7 @@
 
 #ifndef SRC_BRESENHAM_HPP
 #define SRC_BRESENHAM_HPP
-#include <Eigen/Dense>
+#include "Eigen/Core"
 using  namespace Eigen;
 
 namespace grid_mapping{

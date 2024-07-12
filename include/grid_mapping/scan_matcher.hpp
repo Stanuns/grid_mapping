@@ -4,7 +4,7 @@
 #ifndef SRC_SCAN_MATCHER_HPP
 #define SRC_SCAN_MATCHER_HPP
 
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include "grid_mapping/pose.hpp"
 #include "grid_mapping/grid_map.hpp"
 #include "grid_mapping/range_reading.hpp"

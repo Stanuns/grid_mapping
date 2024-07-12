@@ -4,7 +4,7 @@
 #ifndef SRC_GRID_MAP_HPP
 #define SRC_GRID_MAP_HPP
 
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include "grid_mapping/pose.hpp"
 #include "grid_mapping/range_reading.hpp"
 #include "grid_mapping/point.hpp"

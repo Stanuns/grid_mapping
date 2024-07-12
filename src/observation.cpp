@@ -4,7 +4,7 @@
 
 #include "grid_mapping/observation.hpp"
 #include "grid_mapping/grid_map.hpp"
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include "grid_mapping/point.hpp"
 #include "grid_mapping/pose.hpp"
 #include <math.h>
@@ -33,8 +33,8 @@ void Observation::prob(double& pr, double& l, int& hit, GridMap& map, RangeReadi
     hit = 0;
 
     MatrixXd likelihoods = map.getCells();
-    double sizeW = map.getSizeW();
-    double sizeH = map.getSizeH();
+    int sizeW = map.getSizeW();
+    int sizeH = map.getSizeH();
     PointCell center = map.getCenter();
     double res = map.getResolution();
 

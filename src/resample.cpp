@@ -7,7 +7,7 @@
 #include<stdio.h>
 #include <iostream>
 #include<bits/stdc++.h>  //适配fedora编译
-//#include <Eigen/Dense>
+//#include "Eigen/Core"
 
 using namespace std;
 //using namespace Eigen;

@@ -13,7 +13,7 @@
 #include <math.h>
 #include "grid_mapping/grid_map.hpp"
 #include "grid_mapping/bresenham.hpp"
-#include <Eigen/Dense>
+#include "Eigen/Core"
 
 using namespace std;
 using namespace Eigen;

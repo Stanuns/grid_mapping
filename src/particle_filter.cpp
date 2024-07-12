@@ -12,7 +12,7 @@
 #include "grid_mapping/resample.hpp"
 #include <iostream>
 
-#include <Eigen/Dense>
+#include "Eigen/Core"
 using namespace grid_mapping;
 using namespace Eigen;
 using namespace std;

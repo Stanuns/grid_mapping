@@ -3,7 +3,7 @@
 //
 
 #include "grid_mapping/scan_matcher.hpp"
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include <math.h>
 #include <iostream>
 #include "grid_mapping/pose.hpp"
@@ -116,8 +116,8 @@ void ScanMatcher::optimize(Pose& optimalPose, int& hit, double& score, GridMap& 
 void ScanMatcher::getScore(int& hit, double& score, Pose& bestPose, RangeReading& cur_rr,  GridMap& map){
 
     MatrixXd likelihoods = map.getCells();
-    double sizeW = map.getSizeW();
-    double sizeH = map.getSizeH();
+    int sizeW = map.getSizeW();
+    int sizeH = map.getSizeH();
     PointCell center = map.getCenter();
     double res = map.getResolution();
 

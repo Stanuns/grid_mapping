@@ -5,7 +5,7 @@
 #ifndef SRC_PARTICLE_HPP
 #define SRC_PARTICLE_HPP
 
-#include <Eigen/Dense>
+#include "Eigen/Core"
 #include "grid_mapping/grid_map.hpp"
 #include "grid_mapping/pose.hpp"
 #include "grid_mapping/range_reading.hpp"
