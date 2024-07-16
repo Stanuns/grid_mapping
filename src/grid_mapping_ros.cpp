@@ -259,6 +259,7 @@ void GridMappingRos::publishMapInfo(){
     map_.map.info.origin.orientation.z = 0.0;
     map_.map.info.origin.orientation.w = 1.0;
 
+    map_.map.info.map_load_time = this->get_clock()->now();
 
     map_.map.header.stamp = this->get_clock()->now();
     map_.map.header.frame_id = map_frame_;
