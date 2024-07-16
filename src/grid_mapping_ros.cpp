@@ -2,7 +2,7 @@
  * @Author: Wei Sun 
  * @Date: 2024-07-09 09:15:43 
  * @Last Modified by: Wei Sun
- * @Last Modified time: 2024-07-12 17:55:01
+ * @Last Modified time: 2024-07-15 20:40:46
  */
 #include "rclcpp/rclcpp.hpp"
 #include "grid_mapping/grid_mapping_ros.hpp"
@@ -30,8 +30,10 @@ transform_thread_(nullptr)
         get_node_timers_interface());
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tfL_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
-    tfB_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    node_ = std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node *) {});
+    tfB_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 
+    map_to_odom_.setIdentity();
 
     // odom_sub.subscribe(this, "odom", rmw_qos_profile);
     // scan_sub.subscribe(this, "scan", rmw_qos_profile);
@@ -48,6 +50,7 @@ transform_thread_(nullptr)
 
     transform_thread_ = std::make_shared<std::thread>
             (std::bind(&GridMappingRos::publishLoop, this, transform_publish_period_));
+   
 }
 
 GridMappingRos::~GridMappingRos(){
@@ -128,14 +131,14 @@ void GridMappingRos::init(){
 
 void GridMappingRos::liveGmapping(const nav_msgs::msg::Odometry::ConstSharedPtr& odom, const sensor_msgs::msg::LaserScan::ConstSharedPtr& scan) 
 {
-    RCLCPP_INFO(this->get_logger(),
-            "I heard and synchronized the following timestamps: %u, %u",
-            odom->header.stamp.sec, scan->header.stamp.sec);
+    // RCLCPP_INFO(this->get_logger(),
+    //         "I heard and synchronized the following timestamps: %u, %u",
+    //         odom->header.stamp.sec, scan->header.stamp.sec);
 
     laser_frame_ =  scan->header.frame_id;
-    double angle_center = 0; //laser坐标系x轴正方向与激光安装方向正前方向相重合。
+    double angle_center = 0; //0: laser坐标系x轴正方向与激光安装方向正前方向相重合。 (scan->angle_min + scan->angle_max)/2
     
-    // centered_laser_pose_ = tf2::Stamped<geometry_msgs::msg::PoseStamped>(tf2::Transform(tf2::createQuaternionFromRPY(0,0,angle_center),
+    // centered_laser_pose_ = tf::Stamped<tf::Pose>(tf::Transform(tf::createQuaternionFromRPY(0,0,angle_center),
     //                                                           tf::Vector3(0,0,0)), scan->header.stamp, laser_frame_);
     centered_laser_pose_.header.stamp = scan->header.stamp;
     centered_laser_pose_.header.frame_id = laser_frame_;
@@ -144,10 +147,10 @@ void GridMappingRos::liveGmapping(const nav_msgs::msg::Odometry::ConstSharedPtr&
     centered_laser_pose_.pose.position.y = vec3.getY();
     centered_laser_pose_.pose.position.z = vec3.getZ();
     tf2::Quaternion quat;
-    quat.setRPY(0, 0, angle_center);
+    quat.setRPY(0, 0, 0);
     centered_laser_pose_.pose.orientation.x = quat.x();
     centered_laser_pose_.pose.orientation.y = quat.y();
-    centered_laser_pose_.pose.orientation.z = quat.w();
+    centered_laser_pose_.pose.orientation.z = quat.z();
     centered_laser_pose_.pose.orientation.w = quat.w();
 
 
@@ -209,7 +212,12 @@ bool GridMappingRos::getOdomPose(const nav_msgs::msg::Odometry::ConstSharedPtr& 
     /**
      * yaw的取值范围： 0~M_PI   0~-M_PI
      ***/
-    double yaw = laserPose_inOdom.pose.orientation.w;
+    // double yaw = laserPose_inOdom.pose.orientation.w;
+    double yaw = tf2::getYaw(laserPose_inOdom.pose.orientation);
+    //debug
+    if(yaw < -M_PI || yaw > M_PI){
+        RCLCPP_INFO(this->get_logger(),"debug test..................");
+    }
     gmap_odomPose.th = yaw;
 
     return true;
@@ -252,7 +260,7 @@ void GridMappingRos::publishMapInfo(){
     map_.map.info.origin.orientation.w = 1.0;
 
 
-    map_.map.header.stamp = this->get_clock()->now();;
+    map_.map.header.stamp = this->get_clock()->now();
     map_.map.header.frame_id = map_frame_;
     map_.map.data.resize(map_.map.info.width * map_.map.info.height);
 
@@ -306,7 +314,7 @@ void GridMappingRos::publishTransform()
         tfB_->sendTransform(transform);
     }
     catch (tf2::LookupException& te){
-        RCLCPP_INFO(this->get_logger(), te.what());
+        RCLCPP_ERROR(this->get_logger(), te.what());
     }
     map_to_odom_mutex_.unlock();
 }
@@ -321,7 +329,7 @@ bool GridMappingRos::transformPose(
   }
 
   try {
-    tf_buffer_tfP_->transform(
+    tf2_buffer_->transform(
       in_pose, out_pose, frame,
       tf2::durationFromSec(transform_tolerance_));
     out_pose.header.frame_id = frame;

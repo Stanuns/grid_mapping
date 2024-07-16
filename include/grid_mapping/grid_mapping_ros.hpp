@@ -2,7 +2,7 @@
  * @Author: Wei Sun 
  * @Date: 2024-07-09 09:16:07 
  * @Last Modified by: Wei Sun
- * @Last Modified time: 2024-07-12 17:43:07
+ * @Last Modified time: 2024-07-15 20:26:18
  */
 #ifndef SRC_GRID_MAPPING_ROS_HPP
 #define SRC_GRID_MAPPING_ROS_HPP
@@ -31,6 +31,7 @@
 #include "tf2_ros/create_timer_ros.h"
 #include "tf2_ros/message_filter.h"
 #include "tf2_ros/transform_listener.h"
+#include "tf2/utils.h"
 #ifdef TF2_CPP_HEADERS
   #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #else
@@ -63,6 +64,7 @@ protected:
       geometry_msgs::msg::PoseStamped & out_pose) const;
 
 private:
+    rclcpp::Node::SharedPtr node_;
     message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub;
     message_filters::Subscriber<sensor_msgs::msg::LaserScan> scan_sub;
   // std::shared_ptr<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, sensor_msgs::msg::LaserScan>> sync_;
@@ -141,7 +143,6 @@ private:
     long count;
     
     //transformPose
-    std::shared_ptr<tf2_ros::Buffer> tf_buffer_tfP_;
     double transform_tolerance_{0.1};
 
 };
