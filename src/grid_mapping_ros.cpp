@@ -119,7 +119,7 @@ void GridMappingRos::init(){
     occ_thresh_  = 0.01;
     map_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
     mapmd_publisher_ = this->create_publisher<nav_msgs::msg::MapMetaData>("map_metadata",10);
-    pose_publisher_ = this->create_publisher<geometry_msgs::msg::Pose>("robot_pose",10);
+    // pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("robot_pose",10);
 
     //tf
     odom_frame_ = "odom";
