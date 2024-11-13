@@ -64,6 +64,19 @@ add_library(${PROJECT_NAME}
   )
 target_link_libraries(grid_mapping_ros ${PROJECT_NAME})
 
+add_executable(odom_tf_pub src/odom_tf_pub.cpp)
+ament_target_dependencies(
+  odom_tf_pub
+  sensor_msgs
+  geometry_msgs
+  nav_msgs
+  message_filters
+  rclcpp
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -78,6 +91,7 @@ endif()
 
 install(TARGETS
   grid_mapping_ros
+  odom_tf_pub
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch
